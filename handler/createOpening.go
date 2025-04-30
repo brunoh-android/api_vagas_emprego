@@ -3,11 +3,34 @@ package handler
 import (
 	"net/http"
 
+	"github.com/brunoh-android/api_vagas_emprego.git/schemas"
 	"github.com/gin-gonic/gin"
 )
 
 func CreateOpeningHandler(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{
-		"msg": "GET opening",
-	})
+	request := CreateOpeningRequest{}
+	ctx.BindJSON(&request)
+
+	if err := request.Validate(); err != nil {
+		logger.Errorf("validation error: %v", err.Error())
+		sendError(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	opening := schemas.Opening{
+		Role:     request.Role,
+		Company:  request.Company,
+		Location: request.Location,
+		Remote:   *request.Remote,
+		Link:     request.Link,
+		Salary:   request.Salary,
+	}
+
+	if err := db.Create(&opening).Error; err != nil {
+		logger.Errorf("create opening error: %v", err.Error())
+		sendError(ctx, http.StatusInternalServerError, "error creating opening in database")
+		return
+	}
+
+	sendSuccess(ctx, "createOpening", opening)
 }
